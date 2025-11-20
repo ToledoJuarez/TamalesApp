@@ -1,0 +1,28 @@
+
+        /* Estilos generales para accesibilidad */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+        }
+        .card {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .btn-primary {
+            @apply px-6 py-3 text-lg font-bold rounded-xl text-white bg-tamal-green hover:bg-green-700 transition duration-150;
+        }
+        .btn-secondary {
+            @apply px-6 py-3 text-lg font-bold rounded-xl text-tamal-green border border-tamal-green hover:bg-tamal-green hover:text-white transition duration-150;
+        }
+        .input-lg, .select-lg {
+            @apply w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-tamal-green focus:ring-1 focus:ring-tamal-green transition duration-150;
+        }
+        /* Ajuste para móviles */
+        @media (max-width: 640px) {
+            .input-lg, .select-lg {
+                @apply p-4 text-xl;
+            }
+            .btn-primary, .btn-secondary {
+                @apply py-4 text-xl;
+            }
+        }
