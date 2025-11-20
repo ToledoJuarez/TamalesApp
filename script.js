@@ -23,6 +23,7 @@ const $summarySection = document.getElementById('summary-section');
 const $successSection = document.getElementById('success-section');
 const $tamalList = document.getElementById('tamal-list');
 const $messageArea = document.getElementById('message-area');
+const $confirmSendBtn = document.getElementById('confirm-send-btn'); // Nueva referencia
 
 // --- Función para calcular precio de un tamal ---
 function calcularPrecioTamal(tamal) {
@@ -84,6 +85,218 @@ function validateCustomerData(data) {
     if (!data.direccion || data.direccion.length < 5) return "Por favor, ingresa una Dirección de entrega válida.";
     if (tamales.length === 0) return "Debes agregar al menos un tamal al pedido.";
     return null; // Retorna null si la validación es exitosa
+}
+
+// --- Función para generar y descargar PDF ---
+function downloadOrderPDF() {
+    const customerData = getCustomerData();
+    const totalPedido = calcularTotalPedido();
+    
+    // Crear contenido HTML para el PDF
+    let pdfHTML = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Comprobante de Pedido - Tamales</title>
+            <style>
+                body {
+                    font-family: 'Inter', Arial, sans-serif;
+                    background-color: #ffffff;
+                    color: #333;
+                    margin: 0;
+                    padding: 20px;
+                    line-height: 1.4;
+                }
+                
+                .container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background: white;
+                }
+                
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #38761d;
+                    padding-bottom: 20px;
+                }
+                
+                .header h1 {
+                    color: #38761d;
+                    font-size: 28px;
+                    margin: 0;
+                    font-weight: bold;
+                }
+                
+                .section {
+                    margin-bottom: 25px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #38761d;
+                }
+                
+                .section h2 {
+                    color: #38761d;
+                    font-size: 20px;
+                    margin: 0 0 15px 0;
+                    font-weight: bold;
+                }
+                
+                .customer-info p {
+                    margin: 8px 0;
+                    font-size: 14px;
+                }
+                
+                .customer-info strong {
+                    color: #333;
+                }
+                
+                .table-container {
+                    overflow-x: auto;
+                    margin: 15px 0;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background: white;
+                    font-size: 12px;
+                }
+                
+                th {
+                    background-color: #38761d;
+                    color: white;
+                    padding: 10px;
+                    text-align: left;
+                    font-weight: bold;
+                }
+                
+                td {
+                    padding: 10px;
+                    border-bottom: 1px solid #ddd;
+                }
+                
+                tr:nth-child(even) {
+                    background-color: #f8f9fa;
+                }
+                
+                .total-section {
+                    background-color: #38761d;
+                    color: white;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                    text-align: center;
+                }
+                
+                .total-amount {
+                    font-size: 20px;
+                    font-weight: bold;
+                }
+                
+                .footer {
+                    text-align: center;
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    color: #666;
+                    font-size: 12px;
+                }
+                
+                .no-info {
+                    color: #666;
+                    font-style: italic;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>¡Pedido de Tamales Confirmado!</h1>
+                    <p>Comprobante de pedido - Fecha: ${new Date().toLocaleDateString('es-GT')}</p>
+                </div>
+                
+                <div class="section customer-info">
+                    <h2>Datos de Contacto y Entrega</h2>
+                    <p><strong>Nombre:</strong> ${customerData.nombre}</p>
+                    <p><strong>Teléfono:</strong> ${customerData.telefono}</p>
+                    <p><strong>Dirección:</strong> ${customerData.direccion}</p>
+                    <p><strong>Referencia:</strong> ${customerData.referencia || '<span class="no-info">No especificado</span>'}</p>
+                    <p><strong>Coordenadas GPS:</strong> ${customerData.gps || '<span class="no-info">No capturado</span>'}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Detalle de Tamales</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Cant.</th>
+                                    <th>Masa</th>
+                                    <th>Carne</th>
+                                    <th>Extras</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    `;
+    
+    // Agregar filas de tamales
+    tamales.forEach((tamal, index) => {
+        const extrasText = tamal.extras.length > 0 ? tamal.extras.join(', ') : 'Ninguno';
+        const subtotal = calcularPrecioTamal(tamal);
+        
+        pdfHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${tamal.cantidad}</td>
+                <td>${tamal.masa}</td>
+                <td>${tamal.carne}</td>
+                <td>${extrasText}</td>
+                <td>Q${subtotal}</td>
+            </tr>
+        `;
+    });
+    
+    pdfHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="total-section">
+                    <div class="total-amount">
+                        TOTAL DEL PEDIDO: Q${totalPedido}
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>¡Gracias por tu pedido! Recibirás una confirmación por teléfono.</p>
+                    <p>Fecha y hora de generación: ${new Date().toLocaleString('es-GT')}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // CORRECCIÓN: Cambiar el tipo de Blob a text/html
+    const blob = new Blob([pdfHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    // Crear enlace de descarga
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Pedido_Tamales_${customerData.nombre.replace(/\s+/g, '_')}_${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showMessage('success', 'Comprobante descargado exitosamente');
 }
 
 // --- Función para Capturar Ubicación GPS ---
@@ -332,6 +545,14 @@ document.getElementById('modify-order-btn').addEventListener('click', () => {
     $summarySection.classList.add('hidden');
     $customerFormSection.classList.remove('hidden');
     $messageArea.innerHTML = ''; // Limpiar mensajes
+    
+    // Asegurar que el botón de enviar esté activo
+    const $confirmSendBtn = document.getElementById('confirm-send-btn');
+    $confirmSendBtn.disabled = false;
+    $confirmSendBtn.innerHTML = `
+        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.416A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.64A11.955 11.955 0 002 12c0 2.977 1.258 5.672 3.293 7.502L12 22l6.707-2.498C20.742 17.672 22 14.977 22 12c0-3.046-1.077-5.875-3.093-8.056z"></path></svg>
+        Confirmar y Enviar Pedido
+    `;
 });
 
 // --- Lógica de Envío de Datos a Google Apps Script (SOLUCIÓN CORS MEJORADA) ---
@@ -361,6 +582,17 @@ document.getElementById('confirm-send-btn').addEventListener('click', async () =
         formData.append(`tamal_${index}_subtotal`, calcularPrecioTamal(tamal));
     });
 
+    // Bloquear botón y cambiar texto
+    const $confirmSendBtn = document.getElementById('confirm-send-btn');
+    $confirmSendBtn.disabled = true;
+    $confirmSendBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Enviando...
+    `;
+
     $messageArea.innerHTML = '<div class="p-4 mb-4 border-l-4 border-blue-500 bg-blue-100 text-blue-700 rounded-lg">Enviando pedido... Por favor, espera.</div>';
     
     try {
@@ -379,9 +611,10 @@ document.getElementById('confirm-send-btn').addEventListener('click', async () =
             if (result.includes('Success')) {
                 $summarySection.classList.add('hidden');
                 $successSection.classList.remove('hidden');
-                $messageArea.innerHTML = '';
-            } else {
-                showMessage('error', `Error al procesar el pedido: ${result}`);
+                $messageArea.innerHTML = `
+                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.416A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.64A11.955 11.955 0 002 12c0 2.977 1.258 5.672 3.293 7.502L12 22l6.707-2.498C20.742 17.672 22 14.977 22 12c0-3.046-1.077-5.875-3.093-8.056z"></path></svg>
+                    Confirmar y Enviar Pedido
+                `;
             }
         } else {
             throw new Error('Error del servidor: ' + response.status);
@@ -390,6 +623,12 @@ document.getElementById('confirm-send-btn').addEventListener('click', async () =
     } catch (error) {
         console.error("Error en la solicitud:", error);
         showMessage('error', `No se pudo conectar con el servicio de pedidos. Detalles: ${error.message}`);
+    // Re-activar botón en caso de error
+        $confirmSendBtn.disabled = false;
+        $confirmSendBtn.innerHTML = `
+            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.416A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.64A11.955 11.955 0 002 12c0 2.977 1.258 5.672 3.293 7.502L12 22l6.707-2.498C20.742 17.672 22 14.977 22 12c0-3.046-1.077-5.875-3.093-8.056z"></path></svg>
+            Confirmar y Enviar Pedido
+        `;
     }
 });
 
@@ -397,6 +636,13 @@ document.getElementById('confirm-send-btn').addEventListener('click', async () =
 document.getElementById('new-order-btn').addEventListener('click', () => {
     // Recargar la página para un inicio limpio
     window.location.reload();
+});
+
+// Agrega esto al final del archivo script.js, justo antes de la inicialización
+
+// --- Event Listener para el botón de Descargar PDF ---
+document.getElementById('download-pdf-btn').addEventListener('click', () => {
+    downloadOrderPDF();
 });
 
 // --- Inicialización ---
