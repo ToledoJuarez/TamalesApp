@@ -1,10 +1,10 @@
 // URL del Apps Script de Google
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRklOYJ2jS__V-PmWeGEf7szqKY1XyhoPrLzQdOS65-51Fi8nitrm6Yktkjm-uYZgf/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1iY10YpTCbEV2AdnsTbyEv3zG_3QqY_dePpRzeW1_Q1lk-Xlz15NhxAhlHZeA2gn8Rw/exec';
 
 // Tabla de precios
 const PRECIOS = {
-    'Pollo': 8,
-    'Cerdo': 8,
+    'Pollo': 10,
+    'Cerdo': 10,
     'Gallina': 12,
     'Costillas': 12,
     'Picante': 0,
@@ -631,6 +631,129 @@ document.getElementById('confirm-send-btn').addEventListener('click', async () =
         `;
     }
 });
+
+// --- Lógica de Navegación entre Pestañas ---
+const $navNew = document.getElementById('nav-new-order');
+const $navQuery = document.getElementById('nav-query-orders');
+const $querySection = document.getElementById('query-section');
+
+$navNew.addEventListener('click', () => {
+    $navNew.classList.add('border-tamal-green', 'text-tamal-green');
+    $navNew.classList.remove('border-transparent', 'text-gray-500');
+    $navQuery.classList.add('border-transparent', 'text-gray-500');
+    $navQuery.classList.remove('border-tamal-green', 'text-tamal-green');
+    
+    $querySection.classList.add('hidden');
+    $customerFormSection.classList.remove('hidden');
+    $summarySection.classList.add('hidden');
+    $successSection.classList.add('hidden');
+});
+
+$navQuery.addEventListener('click', () => {
+    $navQuery.classList.add('border-tamal-green', 'text-tamal-green');
+    $navQuery.classList.remove('border-transparent', 'text-gray-500');
+    $navNew.classList.add('border-transparent', 'text-gray-500');
+    $navNew.classList.remove('border-tamal-green', 'text-tamal-green');
+    
+    $querySection.classList.remove('hidden');
+    $customerFormSection.classList.add('hidden');
+    $summarySection.classList.add('hidden');
+    $successSection.classList.add('hidden');
+    
+    loadClientsList();
+});
+
+// --- Cargar Lista de Clientes Únicos ---
+async function loadClientsList() {
+    const $selector = document.getElementById('client-selector');
+    $selector.innerHTML = '<option value="" disabled selected>Cargando lista...</option>';
+    
+    try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getClients`);
+        const clients = await response.json();
+        
+        $selector.innerHTML = '<option value="" disabled selected>-- Elige un cliente --</option>';
+        clients.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            $selector.appendChild(opt);
+        });
+    } catch (e) {
+        showMessage('error', 'No se pudo cargar la lista de clientes.');
+    }
+}
+
+// --- Consultar Detalles del Cliente Seleccionado ---
+document.getElementById('client-selector').addEventListener('change', async (e) => {
+    const nombre = e.target.value;
+    const $results = document.getElementById('query-results');
+    $results.innerHTML = '<p class="text-center text-gray-500">Buscando pedidos...</p>';
+
+    try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getOrders&nombre=${encodeURIComponent(nombre)}`);
+        const orders = await response.json();
+        
+        if (orders.length === 0) {
+            $results.innerHTML = '<p class="text-center text-red-500">No se encontraron pedidos.</p>';
+            return;
+        }
+
+        // Usamos la primera fila para los datos del cliente (Nombre, Tel, Dir, Ref, GPS)
+        const d = orders[0];
+        const totalFinal = d[14]; // Columna Total (O index 14)
+
+        let ordersHTML = `
+            <div class="bg-gray-100 p-4 rounded-lg shadow-inner">
+                <h3 class="text-xl font-semibold mb-2 text-gray-700">Datos de Contacto</h3>
+                <p><strong>Teléfono:</strong> ${d[2]}</p>
+                <p><strong>Dirección:</strong> ${d[3]}</p>
+                <p><strong>Referencia:</strong> ${d[4] || 'N/A'}</p>
+                <p><strong>GPS:</strong> ${d[5] || 'N/A'}</p>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead class="bg-tamal-green text-white">
+                        <tr>
+                            <th class="p-2 text-left text-xs">Fecha</th>
+                            <th class="p-2 text-left text-xs">Cant.</th>
+                            <th class="p-2 text-left text-xs">Masa/Carne</th>
+                            <th class="p-2 text-left text-xs">Extras</th>
+                            <th class="p-2 text-left text-xs">Subtotal</th>
+                            <th class="p-2 text-left text-xs">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        orders.forEach(row => {
+            const extras = [];
+            if(row[9] === 'SI') extras.push('Picante');
+            if(row[10] === 'SI') extras.push('Aceituna');
+            if(row[11] === 'SI') extras.push('Pasas');
+            if(row[12] === 'SI') extras.push('Ciruela');
+
+            ordersHTML += `
+                <tr class="border-b text-sm">
+                    <td class="p-2">${new Date(row[0]).toLocaleDateString()}</td>
+                    <td class="p-2 font-bold">${row[6]}</td>
+                    <td class="p-2">${row[7]} / ${row[8]}</td>
+                    <td class="p-2 text-xs">${extras.join(', ') || 'Ninguno'}</td>
+                    <td class="p-2 font-bold text-tamal-green">Q${row[13]}</td>
+                    <td class="p-2"><span class="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">${row[15]}</span></td>
+                </tr>
+            `;
+        });
+
+        ordersHTML += `</tbody></table></div>`;
+        $results.innerHTML = ordersHTML;
+
+    } catch (err) {
+        $results.innerHTML = '<p class="text-center text-red-500">Error al recuperar datos.</p>';
+    }
+});
+
 
 // --- Lógica de Navegación: Éxito a Nuevo Pedido ---
 document.getElementById('new-order-btn').addEventListener('click', () => {
