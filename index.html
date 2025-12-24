@@ -28,8 +28,18 @@
     </script>
     
 </head>
-<body class="p-4 sm:p-8 min-h-screen flex items-start justify-center">
+<body class="p-4 sm:p-8 min-h-screen flex flex-col items-center justify-start">
 
+    <nav class="w-full max-w-4xl flex gap-4 mb-6 px-4">
+        <button id="nav-new-order" class="flex-1 py-2 font-bold border-b-4 border-tamal-green text-tamal-green">
+            Nuevo Pedido
+        </button>
+        <button id="nav-query-orders" class="flex-1 py-2 font-bold border-b-4 border-transparent text-gray-500 hover:text-tamal-green">
+            Consultar Pedidos
+        </button>
+    </nav>
+
+    <div id="app" class="w-full max-w-4xl bg-white rounded-2xl p-6 sm:p-10 card">
     <div id="app" class="w-full max-w-4xl bg-white rounded-2xl p-6 sm:p-10 card">
         <h1 class="text-3xl sm:text-4xl font-extrabold text-tamal-green mb-8 text-center">
             ¡Haz tu Pedido de Tamales!
@@ -37,6 +47,21 @@
 
         <!-- Mensaje de Carga y Errores -->
         <div id="message-area" class="mb-4 text-center"></div>
+
+        <div id="query-section" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Consultar Historial de Pedidos</h2>
+            
+            <div class="space-y-4">
+                <label class="block text-sm font-medium text-gray-700">Selecciona un Cliente:</label>
+                <select id="client-selector" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-tamal-green focus:ring-tamal-green py-3 px-4 border">
+                    <option value="" disabled selected>Cargando clientes...</option>
+                </select>
+            </div>
+
+            <div id="query-results" class="mt-8 space-y-8">
+                </div>
+        </div>
+
 
         <!-- SECCIÓN 1: FORMULARIO DE CLIENTE Y TAMALES -->
         <div id="customer-form-section" class="space-y-6">
